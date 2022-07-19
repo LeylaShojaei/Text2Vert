@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 """
-This script converts claws files to vertical files, required by NoSketch Engine.
+This script converts text files to vertical files, required by NoSketch Engine.
 """
 
 import argparse
@@ -21,9 +21,9 @@ def _argument_parser() -> argparse.ArgumentParser:
                    dest="debug",
                    action="store_true",
                    help="set logging level to debug")
-    p.add_argument("claws_path",
+    p.add_argument("raw_text_file_path",
                    type=str,
-                   help="Path to the CLAWS file")
+                   help="Path to the raw text file that contains the corpus")
     return p
 
 
@@ -39,14 +39,14 @@ def main():
 
     _logger.debug("This is a debug message")
     _logger.info("This is an info message")
-    claws_rows = _read_claws(parsed_args.claws_path)
+    raw_text = _read_text(parsed_args.raw_text_file_path)
 
 
-def _read_claws(claws_path: str) -> List[str]:
-    _logger.debug(f"Reading the CLAWS file from:'{claws_path}'")
-    with open(claws_path, "r") as f:
-        rows = f.readlines()
-    return rows
+def _read_text(raw_text_path: str) -> List[str]:
+    _logger.debug(f"Reading the text file from:'{raw_text_path}'")
+    with open(raw_text_path, "r") as f:
+        text = f.read()
+    return text
 
 
 if __name__ == "__main__":
