@@ -42,7 +42,7 @@ def main():
     raw_text = _read_text(parsed_args.raw_text_file_path)
 
 
-def _read_text(raw_text_path: str) -> List[str]:
+def _read_text(raw_text_path: str) -> str:
     _logger.debug(f"Reading the text file from:'{raw_text_path}'")
     with open(raw_text_path, "r") as f:
         text = f.read()
