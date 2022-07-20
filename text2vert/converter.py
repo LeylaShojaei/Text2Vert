@@ -44,7 +44,7 @@ def main():
 
 def _read_text(raw_text_path: str) -> str:
     _logger.debug(f"Reading the text file from:'{raw_text_path}'")
-    with open(raw_text_path, "r") as f:
+    with open(raw_text_path, "r", encoding="iso_8859_1") as f:
         text = f.read()
     return text
 
