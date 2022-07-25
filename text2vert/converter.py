@@ -6,7 +6,10 @@ This script converts text files to vertical files, required by NoSketch Engine.
 
 import argparse
 import logging
+import os
+import os.path
 import string
+import sys
 
 from typing import List
 
@@ -26,6 +29,13 @@ def _argument_parser() -> argparse.ArgumentParser:
     p.add_argument("raw_text_file_path",
                    type=str,
                    help="Path to the raw text file that contains the corpus")
+    p.add_argument("nosketch_directory_path",
+                   type=str,
+                   help="Path to NoSketch Engine docker directory")
+    p.add_argument("corpus_name",
+                   type=str,
+                   help="Name for the corpus; this is the name that will be"
+                        " displayed on the user interface.")
     return p
 
 
@@ -40,6 +50,29 @@ def _convert_text_to_vert(raw_text: str) -> List[str]:
     return result
 
 
+def _create_corpus_directory(nosketch_docker_path: str, corpus_name: str) -> str:
+    if not nosketch_docker_path.endswith("/"):
+        nosketch_docker_path += "/"
+
+    if not os.path.exists(nosketch_docker_path):
+        _logger.error("The provided path "
+                      f"('{nosketch_docker_path}') does not exist.")
+        sys.exit(-1)
+
+    corpus_path = nosketch_docker_path + "corpora/" + corpus_name.lower()
+    try:
+        os.mkdir(corpus_path, mode=0o755)
+    except FileExistsError:
+        _logger.error("The corpus "
+                      f"('{corpus_name}', path={corpus_path}) already exists.")
+        sys.exit(-1)
+
+    vertical_path = corpus_path + "/vertical"
+    os.mkdir(vertical_path, mode=0o755)
+
+    return vertical_path
+
+
 def main():
     parsed_args = _argument_parser().parse_args()
 
@@ -52,11 +85,19 @@ def main():
 
     _logger.debug("This is a debug message")
     _logger.info("This is an info message")
+
+    if "/" in parsed_args.corpus_name:
+        _logger.error("The name of the corpus may not contain '/'.")
+        sys.exit(-1)
+
     raw_text = _read_text(parsed_args.raw_text_file_path)
 
     lines = _convert_text_to_vert(raw_text)
 
     _logger.debug(f"Lines: {lines[:100]}")
+
+    vertical_path = _create_corpus_directory(parsed_args.nosketch_directory_path,
+                                             parsed_args.corpus_name)
 
 
 def _read_text(raw_text_path: str) -> str:
