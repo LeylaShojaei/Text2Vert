@@ -73,6 +73,42 @@ def _create_corpus_directory(nosketch_docker_path: str, corpus_name: str) -> str
     return vertical_path
 
 
+def _create_registry_file(nosketch_docker_path: str, corpus_name: str):
+    if not nosketch_docker_path.endswith("/"):
+        nosketch_docker_path += "/"
+
+    if not os.path.exists(nosketch_docker_path):
+        _logger.error("The provided path "
+                      f"('{nosketch_docker_path}') does not exist.")
+        sys.exit(-1)
+
+    registry_file_path = nosketch_docker_path \
+                         + "corpora/registry/" \
+                         + corpus_name.lower()
+
+    registry_content = (
+        f"NAME \"{corpus_name}\"\n",
+        f"PATH {corpus_name.lower()}\n",
+        "ENCODING \"UTF-8\"\n",
+        "LANGUAGE \"English\"\n",
+        "\n",
+        f"PATH   '/corpora/{corpus_name.lower()}/indexed/'\n",
+        f"VERTICAL  '/corpora/{corpus_name.lower()}/vertical/source'\n",
+        "\n",
+        "\n",
+        "ATTRIBUTE  word\n",
+        "\n",
+        "STRUCTURE doc {\n",
+        # "    ATTRIBUTE title\n",
+        "    LABEL \"Corpus Document\"\n",
+        "}\n",
+    )
+
+    _logger.debug(f"Writing the registry file to:'{registry_file_path}'")
+    with open(registry_file_path, "w", encoding="iso_8859_1") as f:
+        f.writelines(registry_content)
+
+
 def main():
     parsed_args = _argument_parser().parse_args()
 
@@ -100,6 +136,9 @@ def main():
                                              parsed_args.corpus_name)
 
     _write_vert(lines, vertical_path)
+
+    _create_registry_file(parsed_args.nosketch_directory_path,
+                          parsed_args.corpus_name)
 
 
 def _read_text(raw_text_path: str) -> str:
