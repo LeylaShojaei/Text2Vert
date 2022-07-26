@@ -99,6 +99,8 @@ def main():
     vertical_path = _create_corpus_directory(parsed_args.nosketch_directory_path,
                                              parsed_args.corpus_name)
 
+    _write_vert(lines, vertical_path)
+
 
 def _read_text(raw_text_path: str) -> str:
     _logger.debug(f"Reading the text file from:'{raw_text_path}'")
@@ -121,6 +123,16 @@ def _split_word(word: str) -> List[str]:
         splits.append(word[last_cut_i:] + "\n")
 
     return splits
+
+
+def _write_vert(vert_content: List[str], vertical_path: str):
+    vertical_path += "/source"
+
+    _logger.debug(f"Writing the vertical file to:'{vertical_path}'")
+    with open(vertical_path, "w", encoding="iso_8859_1") as f:
+        f.write("<doc>\n")
+        f.writelines(vert_content)
+        f.write("</doc>\n")
 
 
 if __name__ == "__main__":
