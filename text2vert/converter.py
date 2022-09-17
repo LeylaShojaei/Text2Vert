@@ -26,9 +26,12 @@ def _argument_parser() -> argparse.ArgumentParser:
                    dest="debug",
                    action="store_true",
                    help="set logging level to debug")
-    p.add_argument("raw_text_file_path",
+    p.add_argument("source_path",
                    type=str,
-                   help="Path to the raw text file that contains the corpus")
+                   help="Path to the corpus source text. The path can be to the"
+                        " raw text file that contains the corpus OR to a"
+                        " directory that contains multiple text files that form"
+                        " the corpus.")
     p.add_argument("nosketch_directory_path",
                    type=str,
                    help="Path to NoSketch Engine docker directory")
@@ -39,15 +42,17 @@ def _argument_parser() -> argparse.ArgumentParser:
     return p
 
 
-def _convert_text_to_vert(raw_text: str) -> List[str]:
-    words = raw_text.split()
-    result = []
+def _convert_text_to_vert(raw_texts: List[str]) -> List[List[str]]:
+    all_docs = []
+    for raw_text in raw_texts:
+        one_doc = []
+        words = raw_text.split()
 
-    for word in words:
-        word_split = _split_word(word)
-        result.extend(word_split)
-
-    return result
+        for word in words:
+            word_split = _split_word(word)
+            one_doc.extend(word_split)
+        all_docs.append(one_doc)
+    return all_docs
 
 
 def _create_corpus_directory(nosketch_docker_path: str, corpus_name: str) -> str:
@@ -109,6 +114,25 @@ def _create_registry_file(nosketch_docker_path: str, corpus_name: str):
         f.writelines(registry_content)
 
 
+def _fetch_file_paths(source_path: str):
+    """
+    TODO: Documentation.
+    """
+    if os.path.isfile(source_path):
+        return [source_path]
+    elif os.path.isdir(source_path):
+        filenames = os.listdir(source_path)
+        all_file_paths = []
+        for filename in filenames:
+            # Recursion to search all subdirectories.
+            full_path = source_path + "/" + filename
+            all_file_paths.extend(_fetch_file_paths(full_path))
+        return all_file_paths
+    else:
+        # Should not be reached: Provided source not a file or directory.
+        return []
+
+
 def main():
     parsed_args = _argument_parser().parse_args()
 
@@ -126,26 +150,37 @@ def main():
         _logger.error("The name of the corpus may not contain '/'.")
         sys.exit(-1)
 
-    raw_text = _read_text(parsed_args.raw_text_file_path)
+    raw_texts = _read_texts(parsed_args.source_path)
 
-    lines = _convert_text_to_vert(raw_text)
+    docs = _convert_text_to_vert(raw_texts)
 
-    _logger.debug(f"Lines: {lines[:100]}")
+    _logger.debug(f"{len(docs)} documents. First one: {docs[0]}")
 
     vertical_path = _create_corpus_directory(parsed_args.nosketch_directory_path,
                                              parsed_args.corpus_name)
 
-    _write_vert(lines, vertical_path)
+    _write_vert(docs, vertical_path)
 
     _create_registry_file(parsed_args.nosketch_directory_path,
                           parsed_args.corpus_name)
 
 
-def _read_text(raw_text_path: str) -> str:
+def _read_texts(raw_text_path: str) -> List[str]:
+    """
+    Reads the raw text from the source file(s). The parameter raw_text_path can
+    point to either a source text file or a source text file directory. For a
+    file, the contents are read and returned as a list of a singular string. For
+    a directory, the files within will be read and returned as a list of strings.
+    """
     _logger.debug(f"Reading the text file from:'{raw_text_path}'")
-    with open(raw_text_path, "r", encoding="iso_8859_1") as f:
-        text = f.read()
-    return text
+
+    file_paths = _fetch_file_paths(raw_text_path)
+
+    texts = []
+    for file_path in file_paths:
+        with open(file_path, "r", encoding="iso_8859_1") as f:
+            texts.append(f.read())
+    return texts
 
 
 def _split_word(word: str) -> List[str]:
@@ -164,14 +199,15 @@ def _split_word(word: str) -> List[str]:
     return splits
 
 
-def _write_vert(vert_content: List[str], vertical_path: str):
+def _write_vert(documents: List[List[str]], vertical_path: str):
     vertical_path += "/source"
 
     _logger.debug(f"Writing the vertical file to:'{vertical_path}'")
     with open(vertical_path, "w", encoding="iso_8859_1") as f:
-        f.write("<doc>\n")
-        f.writelines(vert_content)
-        f.write("</doc>\n")
+        for i, doc in enumerate(documents):
+            f.write(f"<doc n=\"{i + 1}\">\n")
+            f.writelines(doc)
+            f.write("</doc>\n")
 
 
 if __name__ == "__main__":
